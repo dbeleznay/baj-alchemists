@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-//    if (typeof afficherGrid === undefined) {
+    if (typeof afficherGrid !== 'undefined') {
         var decorateGrid = function() {
             var images = document.getElementsByClassName("clRecordSheetMarker");
             for (var i = 0; i < images.length; i++) {
@@ -154,7 +154,7 @@
         };
 
         initLayerSelector();
-//    } else {
+    } else {
         var history = {};
 
         var gatherHistory = function() {
@@ -176,8 +176,8 @@
         var initHistorySelector = function() {
             $(".clHisto").before("<div id='histo_selector'></div>");
             for (var player in history) {
-                $("#histo_selector").append("<input type='checkbox' id='player_visible_'"+player+" checked=true>");
-           //     $("#player_visible_"+player)[0].idA = player;
+                $("#histo_selector").append("<label style='display: inline'><input type='checkbox' id='player_visible_"+player+"' checked=true style='display: inline'>"+history[player][0]+"</label>");
+                $("#player_visible_"+player)[0].idA = player;
                 $("#player_visible_"+player).click(function() {
                     if (this.checked) {
                         for (var row = 0; row < history[this.idA][1].length; row++) {
@@ -189,12 +189,13 @@
                         }
                     }
                 });
+
             }
 
         }
 
         initHistorySelector();
-//    }
+    }
     var addGlobalStyle = function (css) {
         var head, style;
         head = document.getElementsByTagName('head')[0];
