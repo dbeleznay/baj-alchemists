@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         BAJ Alchemists
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.1.1
 // @description  Improve BAJ Alchemists
 // @author       Doug
+// @updateURL    https://raw.githubusercontent.com/dbeleznay/baj-alchemists/master/userscript.js
+// @downloadURL  https://raw.githubusercontent.com/dbeleznay/baj-alchemists/master/userscript.js
 // @match        http://www.boiteajeux.net/jeux/alc/*
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -15,36 +17,6 @@
     'use strict';
 
     if (typeof afficherGrid !== 'undefined') {
-
-        var decorateGrid = function() {
-            for(var li=0;li<8;li++) {
-                for(var lj=0;lj<8;lj++) {
-                    var isSelected = false;
-                    var bgimg = $("#recordsheet_mark_"+li+"_"+lj).css('background-image');
-                    if (bgimg == "url(\"http://www.boiteajeux.net/jeux/alc/img/cross.png\")") {
-                        isSelected = true;
-                    } else {
-                        for (var ln=1;ln<numberOfLayers;ln++) {
-                            if(layerVisibility[ln] && layers[ln][li][lj]) {
-                                isSelected = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (isSelected) {
-                        $("#recordsheet_mark_"+li+"_"+lj).css('background-color', 'rgba(0,0,0,0.7)');
-                    } else {
-                        $("#recordsheet_mark_"+li+"_"+lj).css('background-color', 'transparent');
-                    }
-                }
-            }
-        };
-
-        var oldAfficher = afficherGrid;
-        afficherGrid = function() {
-            oldAfficher();
-            decorateGrid();
-        };
 
         var clearColourTable = function() {
             for (var col=0; col<8; col++) {
@@ -60,6 +32,7 @@
         doClearGrid = function() {
             oldDoClearGrid();
             clearColourTable();
+            clearRecordSheetLayers();
         };
 
         var colourTable = [];
@@ -122,8 +95,32 @@
         };
 
         initColourTable();
-
+        var layerVisibility = [1,1,1,1];
+        var numberOfLayers = 4;
+        var layers = [];
         var selectedLayer = 0;
+
+        var initLayers = function() {
+            for (var layerN = 0; layerN < numberOfLayers; layerN++) {
+                layers[layerN] = [];
+                for (var i=0; i<8; i++) {
+                    layers[layerN][i]=[0,0,0,0,0,0,0,0];
+                }
+            }
+            layers = GM_SuperValue.get ("layers"+gameID, layers);
+        };
+        initLayers();
+
+        var clearRecordSheetLayers = function() {
+            for (var layerN = 0; layerN < numberOfLayers; layerN++) {
+                layers[layerN] = [];
+                for (var i=0; i<8; i++) {
+                    layers[layerN][i]=[0,0,0,0,0,0,0,0];
+                }
+            }
+            GM_SuperValue.set ("layers"+gameID, layers);
+            afficherGrid();
+        }
 
         var clickLayerSelector = function(row) {
             if (row !== selectedLayer) {
@@ -132,9 +129,6 @@
                 selectedLayer = row;
             }
         }
-
-        var layerVisibility = [1,1,1,1];
-        var numberOfLayers = 4;
 
         var clickLayerVisible = function (row, visible) {
             if (row > 0 && row < numberOfLayers) {
@@ -173,17 +167,35 @@
 
         initLayerSelector();
 
-        var layers = [];
-        var initLayers = function() {
-            for (var layerN = 0; layerN < numberOfLayers; layerN++) {
-                layers[layerN] = [];
-                for (var i=0; i<8; i++) {
-                    layers[layerN][i]=[0,0,0,0,0,0,0,0];
+        var decorateGrid = function() {
+            for(var li=0;li<8;li++) {
+                for(var lj=0;lj<8;lj++) {
+                    var isSelected = false;
+                    var bgimg = $("#recordsheet_mark_"+li+"_"+lj).css('background-image');
+                    if (bgimg == "url(\"http://www.boiteajeux.net/jeux/alc/img/cross.png\")") {
+                        isSelected = true;
+                    } else {
+                        for (var ln=1;ln<numberOfLayers;ln++) {
+                            if(layerVisibility[ln] && layers[ln][li][lj]) {
+                                isSelected = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (isSelected) {
+                        $("#recordsheet_mark_"+li+"_"+lj).css('background-color', 'rgba(0,0,0,0.7)');
+                    } else {
+                        $("#recordsheet_mark_"+li+"_"+lj).css('background-color', 'transparent');
+                    }
                 }
             }
-            layers = GM_SuperValue.get ("layers"+gameID, layers);
         };
-        initLayers();
+
+        var oldAfficher = afficherGrid;
+        afficherGrid = function() {
+            oldAfficher();
+            decorateGrid();
+        };
 
         var oldDoManualGrid = doManualGrid;
         doManualGrid = function(pIng, pAlc, pVal) {
@@ -197,7 +209,7 @@
                     // $("#recordsheet_mark_"+pIng+"_"+pAlc).css("background-image","url(img/cross.png)");
                     $("#recordsheet_mark_"+pIng+"_"+pAlc).css('background-color', 'rgba(0,0,0,0.7)');
                 } else {
-                     $("#recordsheet_mark_"+pIng+"_"+pAlc).css('background-color', 'transparent');
+                    $("#recordsheet_mark_"+pIng+"_"+pAlc).css('background-color', 'transparent');
                 }
             }
         };
@@ -218,7 +230,7 @@
                     }
                     history[name][1].push(this);
                 }
-                });
+            });
         }
         gatherHistory();
 
@@ -261,6 +273,3 @@
     addGlobalStyle('.l_selected {background-color: #f89406}');
 
 })();
-
-
-
