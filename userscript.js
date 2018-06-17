@@ -15,18 +15,29 @@
     'use strict';
 
     if (typeof afficherGrid !== 'undefined') {
+
         var decorateGrid = function() {
-            var images = document.getElementsByClassName("clRecordSheetMarker");
-            for (var i = 0; i < images.length; i++) {
-                var bgimg = $(images[i]).css('background-image');
-
-                if (bgimg == "url(\"http://www.boiteajeux.net/jeux/alc/img/cross.png\")") {
-                    $(images[i]).css('background-color', 'rgba(0,0,0,0.7)');
-                } else {
-                    $(images[i]).css('background-color', 'transparent');
+            for(var li=0;li<8;li++) {
+                for(var lj=0;lj<8;lj++) {
+                    var isSelected = false;
+                    var bgimg = $("#recordsheet_mark_"+li+"_"+lj).css('background-image');
+                    if (bgimg == "url(\"http://www.boiteajeux.net/jeux/alc/img/cross.png\")") {
+                        isSelected = true;
+                    } else {
+                        for (var ln=1;ln<numberOfLayers;ln++) {
+                            if(layerVisibility[ln] && layers[ln][li][lj]) {
+                                isSelected = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (isSelected) {
+                        $("#recordsheet_mark_"+li+"_"+lj).css('background-color', 'rgba(0,0,0,0.7)');
+                    } else {
+                        $("#recordsheet_mark_"+li+"_"+lj).css('background-color', 'transparent');
+                    }
                 }
-            };
-
+            }
         };
 
         var oldAfficher = afficherGrid;
@@ -129,9 +140,12 @@
             if (row > 0 && row < numberOfLayers) {
                 layerVisibility[row] = visible;
             }
+            GM_SuperValue.set ("layerVisibility"+gameID, layerVisibility);
+            afficherGrid();
         }
 
         var initLayerSelector = function() {
+            layerVisibility = GM_SuperValue.get ("layerVisibility"+gameID, layerVisibility);
             $("#record_sheet").after("<div id='layer_selector' style='position:absolute;top:1157px;left:215px;width:70px;height:120px;'></div>");
             var layers = ["base", 1, 2, 3];
             for(var row=0; row < 4; row++) {
@@ -143,7 +157,11 @@
                     clickLayerSelector(this.idA);
                 });
                 if (row > 0) {
-                    $("#layer_rect_"+row).append("<input type='checkbox' id='layer_visible_"+row+"' checked="+layerVisibility[row]+">");
+                    var checked = "";
+                    if (layerVisibility[row]) {
+                        checked = " checked=true";
+                    }
+                    $("#layer_rect_"+row).append("<input type='checkbox' id='layer_visible_"+row+"'"+checked+">");
                     $("#layer_visible_"+row)[0].idA = row;
                     $("#layer_visible_"+row).click(function() {
                         clickLayerVisible(this.idA, this.checked);
@@ -154,6 +172,37 @@
         };
 
         initLayerSelector();
+
+        var layers = [];
+        var initLayers = function() {
+            for (var layerN = 0; layerN < numberOfLayers; layerN++) {
+                layers[layerN] = [];
+                for (var i=0; i<8; i++) {
+                    layers[layerN][i]=[0,0,0,0,0,0,0,0];
+                }
+            }
+            layers = GM_SuperValue.get ("layers"+gameID, layers);
+        };
+        initLayers();
+
+        var oldDoManualGrid = doManualGrid;
+        doManualGrid = function(pIng, pAlc, pVal) {
+            if (selectedLayer === 0) {
+                oldDoManualGrid(pIng, pAlc, pVal);
+            } else {
+                var checked = (pVal !== gtCst["VIDE"]);
+                layers[selectedLayer][pIng][pAlc] = checked;
+                GM_SuperValue.set ("layers"+gameID, layers);
+                if (checked) {
+                    // $("#recordsheet_mark_"+pIng+"_"+pAlc).css("background-image","url(img/cross.png)");
+                    $("#recordsheet_mark_"+pIng+"_"+pAlc).css('background-color', 'rgba(0,0,0,0.7)');
+                } else {
+                     $("#recordsheet_mark_"+pIng+"_"+pAlc).css('background-color', 'transparent');
+                }
+            }
+        };
+
+
     } else {
         var history = {};
 
