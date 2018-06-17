@@ -202,7 +202,7 @@
             if (selectedLayer === 0) {
                 oldDoManualGrid(pIng, pAlc, pVal);
             } else {
-                var checked = (pVal !== gtCst["VIDE"]);
+                var checked = !layers[selectedLayer][pIng][pAlc];
                 layers[selectedLayer][pIng][pAlc] = checked;
                 GM_SuperValue.set ("layers"+gameID, layers);
                 if (checked) {
@@ -271,5 +271,6 @@
     addGlobalStyle('#divModal { position: fixed; top: 40px; left: 270px; margin: 0px;}');
     addGlobalStyle('.clColourMarker {position: absolute; width: 58px; height: 30px; border-radius: 5px;font-size:18px;line-height:26px;}');
     addGlobalStyle('.l_selected {background-color: #f89406}');
+
 
 })();
