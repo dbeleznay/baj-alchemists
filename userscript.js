@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BAJ Alchemists
 // @namespace    http://tampermonkey.net/
-// @version      0.1.1
+// @version      0.1.2
 // @description  Improve BAJ Alchemists
 // @author       Doug
 // @updateURL    https://raw.githubusercontent.com/dbeleznay/baj-alchemists/master/userscript.js
@@ -138,6 +138,17 @@
             afficherGrid();
         }
 
+        var clickClearLayer = function (layer) {
+            if (layer > 0 && layer < numberOfLayers) {
+                for (var i=0; i<8; i++) {
+                    layers[layer][i]=[0,0,0,0,0,0,0,0];
+                }
+            }
+            GM_SuperValue.set ("layers"+gameID, layers);
+            afficherGrid();
+        }
+
+
         var initLayerSelector = function() {
             layerVisibility = GM_SuperValue.get ("layerVisibility"+gameID, layerVisibility);
             $("#record_sheet").after("<div id='layer_selector' style='position:absolute;top:1157px;left:215px;width:70px;height:120px;'></div>");
@@ -159,6 +170,11 @@
                     $("#layer_visible_"+row)[0].idA = row;
                     $("#layer_visible_"+row).click(function() {
                         clickLayerVisible(this.idA, this.checked);
+                    });
+                    $("#layer_rect_"+row).append("<div id='layer_clear_"+row+"'>clear</div>");
+                    $("#layer_clear_"+row)[0].idA = row;
+                    $("#layer_clear_"+row).click(function() {
+                    clickClearLayer(this.idA);
                     });
                 }
             }
