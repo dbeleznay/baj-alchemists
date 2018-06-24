@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BAJ Alchemists
 // @namespace    http://tampermonkey.net/
-// @version      0.1.2
+// @version      0.1.3
 // @description  Improve BAJ Alchemists
 // @author       Doug
 // @updateURL    https://raw.githubusercontent.com/dbeleznay/baj-alchemists/master/userscript.js
