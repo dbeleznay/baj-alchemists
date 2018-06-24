@@ -17,16 +17,13 @@
     'use strict';
 
     if (typeof afficherGrid !== 'undefined') {
-
-        var clearColourTable = function() {
-            for (var col=0; col<8; col++) {
-                colourTable[col]=[0,0,0];
-                for (var row=0; row<3; row++) {
-                    $("#colour_mark_"+col+"_"+row).text("");
-                }
-            }
-            GM_SuperValue.set ("colourTable"+gameID, colourTable);
-        };
+        var colourTable = [];
+        var gameID = document.URL.match(/[\?\&]id=([^\&\#]+)/i) [1];
+        var layerVisibility = [1,0,0,0];
+        var numberOfLayers = 4;
+        var maxVisibleLayer = 0;
+        var layers = [];
+        var selectedLayer = 0;
 
         var oldDoClearGrid = doClearGrid;
         doClearGrid = function() {
@@ -35,14 +32,65 @@
             clearRecordSheetLayers();
         };
 
-        var colourTable = [];
-        var gameID = document.URL.match(/[\?\&]id=([^\&\#]+)/i) [1];
+        var clearColourTable = function() {
+            for (var layerN = 0; layerN < numberOfLayers; layerN++) {
+                for (var col=0; col<8; col++) {
+                    colourTable[layerN][col]=[0,0,0];
+                }
+            }
+            GM_SuperValue.set ("colourTable"+gameID, colourTable);
+            redrawColourTable();
+        };
+
+        var redrawColourTable = function() {
+            for (var col=0; col<8; col++) {
+                for (var row=0; row<3; row++) {
+                    var text = "";
+                    var res = 0;
+                    for (var layerN = maxVisibleLayer; layerN >= 0; layerN--) {
+                        if(layerVisibility[layerN] && colourTable[layerN][col][row]) {
+                            res = colourTable[layerN][col][row]
+                            text = colourTableText(res);
+                            break;
+                        }
+                    }
+                    $("#colour_mark_"+col+"_"+row).text(text);
+                    $("#colour_mark_"+col+"_"+row)[0].res = res;
+                }
+            }
+        }
 
         var clickColourTable = function(col,row) {
-            var res = (colourTable[col][row] + 1) % 6;
+            var res = $("#colour_mark_"+col+"_"+row)[0].res;
+            res = (res + 1) % 6;
+            colourTable[selectedLayer][col][row] = res;
+            $("#colour_mark_"+col+"_"+row)[0].res = res;
+            $("#colour_mark_"+col+"_"+row).text(colourTableText(res));
+            GM_SuperValue.set ("colourTable"+gameID, colourTable);
+        };
+
+        var clickColourCallback = function(col, row, res) {
+            $("#colour_popup").hide();
             colourTable[col][row] = res;
             $("#colour_mark_"+col+"_"+row).text(colourTableText(res));
             GM_SuperValue.set ("colourTable"+gameID, colourTable);
+        };
+
+        var clickColourTable2 = function(cell) {
+            var col = cell.idI;
+            var row = cell.idA;
+            var rect = $(cell)[0].getBoundingClientRect();
+            $(cell).append("<div class='colourPopup' id='colour_popup' style='left: "+rect.right+"px; top: "+rect.bottom+"px;'></div>");
+            $("#colour_popup")[0].col = col;
+            $("#colour_popup")[0].row = row;
+
+            for (var i=0; i<6; i++) {
+                $("#colour_popup").append("<div class='colourPopupButton' id='colour_popup_button_"+ i + "' >"+colourTableText(i)+"</div>");
+                $("#colour_popup_button_"+i)[0].res = i;
+                $("#colour_popup_button_"+i).click(function() {
+                    clickColourCallback(cell.parent.col,cell.parent.row,cell.res);
+                });
+            }
         };
 
         var colourTableText = function(id) {
@@ -70,11 +118,36 @@
             return ret;
         }
 
-        var initColourTable = function() {
+        var migrateColourTable = function() {
+            var oldColourTable = colourTable;
+            colourTable = [];
+            // migrate old data first
+            var layerN = 0;
+            colourTable[layerN] = [];
             for (var i=0; i<8; i++) {
-                colourTable[i]=[0,0,0];
+                colourTable[layerN][i]=oldColourTable[i];
+            }
+            for (layerN = 1; layerN < numberOfLayers; layerN++) {
+                colourTable[layerN] = [];
+                for (i=0; i<8; i++) {
+                    colourTable[layerN][i]=[0,0,0];
+                }
+            }
+
+            GM_SuperValue.set ("colourTable"+gameID, colourTable);
+        };
+
+        var initColourTable = function() {
+            for (var layerN = 0; layerN < numberOfLayers; layerN++) {
+                colourTable[layerN] = [];
+                for (var i=0; i<8; i++) {
+                    colourTable[layerN][i]=[0,0,0];
+                }
             }
             colourTable = GM_SuperValue.get ("colourTable"+gameID, colourTable);
+            if (typeof colourTable[0][0][0] === 'undefined') {  // this is the old save format
+                migrateColourTable();
+            }
 
             $("#record_sheet").after("<div id='colour_table' style='position:absolute;top:1475px;left:302px;width:520px;height:120px;'></div>");
 
@@ -82,26 +155,22 @@
                 var xOff = -2+col*65;
                 for (var row=0; row<3; row++) {
                     var yOff = -2 + row*35.5;
-                    var ctText = colourTableText(colourTable[col][row]);
-                    $("#colour_table").append("<div class='clColourMarker clPointer clSelect' id='colour_mark_"+col+"_"+row+"' style=\"left: "+xOff+"px; top: "+yOff+"px;\">"+ctText+"</div>");
+                    $("#colour_table").append("<div class='clColourMarker clPointer clSelect' id='colour_mark_"+col+"_"+row+"' style=\"left: "+xOff+"px; top: "+yOff+"px;\"></div>");
                     $("#colour_mark_"+col+"_"+row)[0].idI = col;
                     $("#colour_mark_"+col+"_"+row)[0].idA = row;
                     $("#colour_mark_"+col+"_"+row).click(function() {
-                        clickColourTable(this.idI,this.idA);
+                        clickColourTable(this.idI, this.idA);
+                        //clickColourTable2(this);
                     });
                 }
             }
 
             $("#knowledge").css('top', '1595px');
             $("#clear_grid").css('top', '1605px');
+            redrawColourTable();
 
         };
-
-        initColourTable();
-        var layerVisibility = [1,0,0,0];
-        var numberOfLayers = 4;
-        var layers = [];
-        var selectedLayer = 0;
+        
 
         var initLayers = function() {
             for (var layerN = 0; layerN < numberOfLayers; layerN++) {
@@ -112,7 +181,6 @@
             }
             layers = GM_SuperValue.get ("layers"+gameID, layers);
         };
-        initLayers();
 
         var clearRecordSheetLayers = function() {
             for (var layerN = 0; layerN < numberOfLayers; layerN++) {
@@ -133,27 +201,50 @@
             }
         }
 
+        var calcMaxVisibleLayer = function (row) {
+            for (var i = row; i >=0; i--) {
+                if (layerVisibility[i]) {
+                    maxVisibleLayer = i;
+                    break;
+                }
+            }
+        }
+
         var clickLayerVisible = function (row, visible) {
             if (row > 0 && row < numberOfLayers) {
                 layerVisibility[row] = visible;
+                if(visible) {
+                    if (row > maxVisibleLayer) {
+                        maxVisibleLayer = row;
+                    }
+                } else {
+                    if (row == maxVisibleLayer) {
+                        calcMaxVisibleLayer(row);
+                    }
+                }
             }
             GM_SuperValue.set ("layerVisibility"+gameID, layerVisibility);
             afficherGrid();
+            redrawColourTable();
         }
 
         var clickClearLayer = function (layer) {
             if (layer > 0 && layer < numberOfLayers) {
                 for (var i=0; i<8; i++) {
                     layers[layer][i]=[0,0,0,0,0,0,0,0];
+                    colourTable[layer][i]=[0,0,0];
                 }
             }
             GM_SuperValue.set ("layers"+gameID, layers);
+            GM_SuperValue.set ("colourTable"+gameID, colourTable);
             afficherGrid();
+            redrawColourTable();
         }
 
 
         var initLayerSelector = function() {
             layerVisibility = GM_SuperValue.get ("layerVisibility"+gameID, layerVisibility);
+            calcMaxVisibleLayer(numberOfLayers);
             $("#record_sheet").after("<div id='layer_selector' style='position:absolute;top:1157px;left:215px;width:70px;height:120px;'></div>");
             var layers = ["base", 1, 2, 3];
             for(var row=0; row < 4; row++) {
@@ -184,6 +275,8 @@
             $("#layer_rect_0").addClass("l_selected");
         };
 
+        initLayers();
+        initColourTable();
         initLayerSelector();
 
         var decorateGrid = function() {
@@ -314,6 +407,9 @@
     addGlobalStyle('#divModal { position: fixed; top: 40px; left: 270px; margin: 0px;}');
     addGlobalStyle('.clColourMarker {position: absolute; width: 58px; height: 30px; border-radius: 5px;font-size:18px;line-height:26px;}');
     addGlobalStyle('.l_selected {background-color: #f89406}');
+    addGlobalStyle('.colourPopupButton {background-color: #3498DB;color: white; padding: 16px; font-size: 16px; border: none; cursor: pointer;}');
+    addGlobalStyle('.colourPopupButton:hover, .dropbtn:focus { background-color: #2980B9;}');
+    addGlobalStyle('.colourPopup { position: relative;display: inline-block;}');
 
 
 })();
