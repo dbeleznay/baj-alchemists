@@ -39,7 +39,7 @@
         var gameID = document.URL.match(/[\?\&]id=([^\&\#]+)/i) [1];
 
         var clickColourTable = function(col,row) {
-            var res = (colourTable[col][row] + 1) % 5;
+            var res = (colourTable[col][row] + 1) % 6;
             colourTable[col][row] = res;
             $("#colour_mark_"+col+"_"+row).text(colourTableText(res));
             GM_SuperValue.set ("colourTable"+gameID, colourTable);
@@ -62,6 +62,9 @@
                     break;
                 case 4:
                     ret = "-/+";
+                    break;
+                case 5:
+                    ret = "0";
                     break;
             }
             return ret;
@@ -95,7 +98,7 @@
         };
 
         initColourTable();
-        var layerVisibility = [1,1,1,1];
+        var layerVisibility = [1,0,0,0];
         var numberOfLayers = 4;
         var layers = [];
         var selectedLayer = 0;
@@ -229,6 +232,30 @@
                 }
             }
         };
+
+        var initRules = function() {
+            var createRow = function(colour1, colour2) {
+                return "<tr><td>"+colour1+"</td><td>-></td><td>"+colour2+"</td></tr>";
+            };
+            var mapColour = function(id) {
+                var ret = "";
+                switch (id) {
+                    case 'r':
+                        ret = "<font color='red'>Red</font>";
+                        break;
+                    case 'g':
+                        ret = "<font color='green'>Green</font>";
+                        break;
+                    case 'b':
+                        ret = "<font color='blue'>Blue</font>";
+                        break;
+                }
+                return ret;
+            };
+            $("#layer_selector").after("<div id='deduction_rules' style='position:absolute;top:1475px;left:202px;width:520px;height:120px;'></div>");
+            $("#deduction_rules").append("<table>"+createRow("create","differ in")+createRow(mapColour('r'),mapColour('g'))+createRow(mapColour('g'),mapColour('b'))+createRow(mapColour('b'),mapColour('r'))+"</table>");
+        };
+        initRules();
 
 
     } else {
